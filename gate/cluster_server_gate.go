@@ -11,25 +11,15 @@ import (
 	"strings"
 )
 
-type NotifyTest struct {
+type RequestGateTest struct {
 	component.Base
 }
 
-func (m *NotifyTest) Init()     {}
-func (m *NotifyTest) Shutdown() {}
-func (m *NotifyTest) TestEcho(ctx context.Context) {
-	fmt.Println("NotifyTest TestEcho...")
-}
-
-type RequestTest struct {
-	component.Base
-}
-
-func (m *RequestTest) Init()     {}
-func (m *RequestTest) Shutdown() {}
-func (m *RequestTest) TestEcho(ctx context.Context) ([]byte, error) {
-	fmt.Println("RequestTest TestEcho...")
-	return []byte{0x30, 0x31}, nil
+func (m *RequestGateTest) Init()     {}
+func (m *RequestGateTest) Shutdown() {}
+func (m *RequestGateTest) TestEcho(ctx context.Context, in []byte) ([]byte, error) {
+	fmt.Println("gate RequestGateTest TestEcho...")
+	return in, nil
 }
 
 var app pitaya.Pitaya
@@ -44,14 +34,15 @@ func main() {
 
 	config := config.NewConfig(conf)
 
-	builder := pitaya.NewBuilderWithConfigs(false, "echo", pitaya.Cluster, map[string]string{}, config)
-	app = builder.Build()
-	tcp := acceptor.NewTCPAcceptor(fmt.Sprintf("%s:%d", "localhost", 5555))
+	tcp := acceptor.NewTCPAcceptor(fmt.Sprintf(":%d", 55561))
+
+	builder := pitaya.NewBuilderWithConfigs(true, "gate", pitaya.Cluster, map[string]string{}, config)
 	builder.AddAcceptor(tcp)
+	app = builder.Build()
 
 	defer app.Shutdown()
-	app.RegisterRemote(&RequestTest{},
-		component.WithName("reqtest"),
+	app.RegisterRemote(&RequestGateTest{},
+		component.WithName("RequestGateTest"),
 		component.WithNameFunc(strings.ToLower),
 	)
 
