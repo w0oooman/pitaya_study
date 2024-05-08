@@ -1,0 +1,27 @@
+syntax = "proto3";
+package Msg;
+option go_package = "./;pb";
+
+message TestGateRequest
+{
+    int32 id = 1;
+		string msg = 2;
+}
+
+message TestGateResponse
+{
+    int32 id = 1;
+	  string msg = 2;
+}
+
+message TestGameRequest
+{
+  int32 id = 1;
+  string msg = 2;
+}
+
+message TestGameResponse
+{
+  int32 id = 1;
+  string msg = 2;
+}

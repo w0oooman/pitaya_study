@@ -50,7 +50,8 @@ gate+game服测试：
          使用的时候明明是Put的 servers/*** 但是用etcdctl查看key却是 pitaya/servers/*
          原来它使用来 etcdPrefix 来处理了一下...
 
-
+         nats 使用docker部署在虚拟机上，virtual box做了端口映射4222，但是windows上始终无法connect 4222，在linux上却可以
+         后来把端口映射改成42221->4222就行了，应该是windows上对4222做了特殊处理，比如保留了或者防火墙过滤了等原因...
 
 
 扩展：

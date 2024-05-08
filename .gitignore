@@ -1,7 +1,7 @@
 build
 # Binaries for programs and plugins
-*.exe
-*.dll
+# *.exe
+# *.dll
 *.so
 *.dylib
 *.PID
