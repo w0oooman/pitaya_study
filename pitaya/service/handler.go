@@ -26,6 +26,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -62,9 +63,7 @@ type (
 	// HandlerService service
 	HandlerService struct {
 		baseService
-		chLocalProcess   chan unhandledMessage // channel of messages that will be processed locally
-		chRemoteProcess  chan unhandledMessage // channel of messages that will be processed remotely
-		decoder          codec.PacketDecoder   // binary decoder
+		decoder          codec.PacketDecoder // binary decoder
 		remoteService    *RemoteService
 		serializer       serialize.Serializer          // message serializer
 		server           *cluster.Server               // server obj
@@ -76,10 +75,11 @@ type (
 	}
 
 	unhandledMessage struct {
-		ctx   context.Context
-		agent agent.Agent
-		route *route.Route
-		msg   *message.Message
+		ctx    context.Context
+		agent  agent.Agent
+		route  *route.Route
+		msg    *message.Message
+		svType string
 	}
 )
 
@@ -87,8 +87,6 @@ type (
 func NewHandlerService(
 	packetDecoder codec.PacketDecoder,
 	serializer serialize.Serializer,
-	localProcessBufferSize int,
-	remoteProcessBufferSize int,
 	server *cluster.Server,
 	remoteService *RemoteService,
 	agentFactory agent.AgentFactory,
@@ -98,8 +96,6 @@ func NewHandlerService(
 ) *HandlerService {
 	h := &HandlerService{
 		services:         make(map[string]*component.Service),
-		chLocalProcess:   make(chan unhandledMessage, localProcessBufferSize),
-		chRemoteProcess:  make(chan unhandledMessage, remoteProcessBufferSize),
 		decoder:          packetDecoder,
 		serializer:       serializer,
 		server:           server,
@@ -123,14 +119,6 @@ func (h *HandlerService) Dispatch(thread int) {
 	for {
 		// Calls to remote servers block calls to local server
 		select {
-		case lm := <-h.chLocalProcess:
-			metrics.ReportMessageProcessDelayFromCtx(lm.ctx, h.metricsReporters, "local")
-			h.localProcess(lm.ctx, lm.agent, lm.route, lm.msg)
-
-		case rm := <-h.chRemoteProcess:
-			metrics.ReportMessageProcessDelayFromCtx(rm.ctx, h.metricsReporters, "remote")
-			h.remoteService.remoteProcess(rm.ctx, nil, rm.agent, rm.route, rm.msg)
-
 		case <-timer.GlobalTicker.C: // execute cron task
 			timer.Cron()
 
@@ -170,6 +158,7 @@ func (h *HandlerService) Handle(conn acceptor.PlayerConn) {
 
 	// startup agent goroutine
 	go a.Handle()
+	go h.process(a)
 
 	logger.Log.Debugf("New session established: %s", a.String())
 
@@ -311,20 +300,14 @@ func (h *HandlerService) processMessage(a agent.Agent, msg *message.Message) {
 	}
 
 	message := unhandledMessage{
-		ctx:   ctx,
-		agent: a,
-		route: r,
-		msg:   msg,
+		ctx:    ctx,
+		agent:  a,
+		route:  r,
+		msg:    msg,
+		svType: r.SvType,
 	}
-	if r.SvType == h.server.Type {
-		h.chLocalProcess <- message
-	} else {
-		if h.remoteService != nil {
-			h.chRemoteProcess <- message
-		} else {
-			logger.Log.Warnf("request made to another server type but no remoteService running")
-		}
-	}
+
+	a.GetProcessChannel() <- message
 }
 
 func (h *HandlerService) localProcess(ctx context.Context, a agent.Agent, route *route.Route, msg *message.Message) {
@@ -368,4 +351,34 @@ func (h *HandlerService) Docs(getPtrNames bool) (map[string]interface{}, error) 
 		return map[string]interface{}{}, nil
 	}
 	return docgenerator.HandlersDocs(h.server.Type, h.services, getPtrNames)
+}
+
+func (h *HandlerService) process(a agent.Agent) {
+	// clean func
+	defer func() {
+		a.Close()
+		if err := recover(); err != nil {
+			logger.Log.Errorf("pitaya/process over: %v.\n%s", err, string(debug.Stack()))
+		}
+	}()
+
+	for {
+		select {
+		case pM := <-a.GetProcessChannel():
+			m := pM.(unhandledMessage)
+			if m.svType == h.server.Type {
+				metrics.ReportMessageProcessDelayFromCtx(m.ctx, h.metricsReporters, "local")
+				h.localProcess(m.ctx, m.agent, m.route, m.msg)
+			} else {
+				if h.remoteService != nil {
+					metrics.ReportMessageProcessDelayFromCtx(m.ctx, h.metricsReporters, "remote")
+					h.remoteService.remoteProcess(m.ctx, nil, m.agent, m.route, m.msg)
+				} else {
+					logger.Log.Warnf("request made to another server type but no remoteService running")
+				}
+			}
+		case <-a.GetStopProcessChannel():
+			return
+		}
+	}
 }

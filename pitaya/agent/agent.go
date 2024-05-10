@@ -67,8 +67,10 @@ type (
 		appDieChan         chan bool         // app die channel
 		chDie              chan struct{}     // wait for close
 		chSend             chan pendingWrite // push message queue
+		chProcess          chan any          // process message queue
 		chStopHeartbeat    chan struct{}     // stop heartbeats
 		chStopWrite        chan struct{}     // stop writing messages
+		chStopProcess      chan struct{}     // stop Process messages
 		closeMutex         sync.Mutex
 		conn               net.Conn            // low-level conn fd
 		decoder            codec.PacketDecoder // binary decoder
@@ -115,6 +117,8 @@ type (
 		SendHandshakeErrorResponse() error
 		SendRequest(ctx context.Context, serverID, route string, v interface{}) (*protos.Response, error)
 		AnswerWithError(ctx context.Context, mid uint, err error)
+		GetProcessChannel() chan any
+		GetStopProcessChannel() chan struct{}
 	}
 
 	// AgentFactory factory for creating Agent instances
@@ -130,6 +134,7 @@ type (
 		heartbeatTimeout   time.Duration
 		messageEncoder     message.Encoder
 		messagesBufferSize int // size of the pending messages buffer
+		processBufferSize  int // size of the process messages buffer
 		metricsReporters   []metrics.Reporter
 		serializer         serialize.Serializer // message serializer
 	}
@@ -144,6 +149,7 @@ func NewAgentFactory(
 	heartbeatTimeout time.Duration,
 	messageEncoder message.Encoder,
 	messagesBufferSize int,
+	processBufferSize int,
 	sessionPool session.SessionPool,
 	metricsReporters []metrics.Reporter,
 ) AgentFactory {
@@ -154,6 +160,7 @@ func NewAgentFactory(
 		heartbeatTimeout:   heartbeatTimeout,
 		messageEncoder:     messageEncoder,
 		messagesBufferSize: messagesBufferSize,
+		processBufferSize:  processBufferSize,
 		sessionPool:        sessionPool,
 		metricsReporters:   metricsReporters,
 		serializer:         serializer,
@@ -162,7 +169,8 @@ func NewAgentFactory(
 
 // CreateAgent returns a new agent
 func (f *agentFactoryImpl) CreateAgent(conn net.Conn) Agent {
-	return newAgent(conn, f.decoder, f.encoder, f.serializer, f.heartbeatTimeout, f.messagesBufferSize, f.appDieChan, f.messageEncoder, f.metricsReporters, f.sessionPool)
+	return newAgent(conn, f.decoder, f.encoder, f.serializer, f.heartbeatTimeout, f.messagesBufferSize, f.processBufferSize,
+		f.appDieChan, f.messageEncoder, f.metricsReporters, f.sessionPool)
 }
 
 // NewAgent create new agent instance
@@ -173,6 +181,7 @@ func newAgent(
 	serializer serialize.Serializer,
 	heartbeatTime time.Duration,
 	messagesBufferSize int,
+	processBufferSize int,
 	dieChan chan bool,
 	messageEncoder message.Encoder,
 	metricsReporters []metrics.Reporter,
@@ -190,8 +199,10 @@ func newAgent(
 		appDieChan:         dieChan,
 		chDie:              make(chan struct{}),
 		chSend:             make(chan pendingWrite, messagesBufferSize),
+		chProcess:          make(chan any, processBufferSize),
 		chStopHeartbeat:    make(chan struct{}),
 		chStopWrite:        make(chan struct{}),
+		chStopProcess:      make(chan struct{}),
 		messagesBufferSize: messagesBufferSize,
 		conn:               conn,
 		decoder:            packetDecoder,
@@ -353,6 +364,7 @@ func (a *agentImpl) Close() error {
 		close(a.chStopWrite)
 		close(a.chStopHeartbeat)
 		close(a.chDie)
+		close(a.chStopProcess)
 		a.onSessionClosed(a.Session)
 	}
 
@@ -621,4 +633,12 @@ func (a *agentImpl) reportChannelSize() {
 			logger.Log.Warnf("failed to report chSend channel capaacity: %s", err.Error())
 		}
 	}
+}
+
+func (a *agentImpl) GetProcessChannel() chan any {
+	return a.chProcess
+}
+
+func (a *agentImpl) GetStopProcessChannel() chan struct{} {
+	return a.chStopProcess
 }

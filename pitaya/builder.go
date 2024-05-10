@@ -224,6 +224,7 @@ func (builder *Builder) Build() Pitaya {
 		builder.Config.Heartbeat.Interval,
 		builder.MessageEncoder,
 		builder.Config.Buffer.Agent.Messages,
+		builder.Config.Buffer.Agent.Process,
 		builder.SessionPool,
 		builder.MetricsReporters,
 	)
@@ -231,8 +232,6 @@ func (builder *Builder) Build() Pitaya {
 	handlerService := service.NewHandlerService(
 		builder.PacketDecoder,
 		builder.Serializer,
-		builder.Config.Buffer.Handler.LocalProcess,
-		builder.Config.Buffer.Handler.RemoteProcess,
 		builder.Server,
 		remoteService,
 		agentFactory,

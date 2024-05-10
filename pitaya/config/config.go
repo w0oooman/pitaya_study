@@ -26,10 +26,9 @@ type PitayaConfig struct {
 	Buffer struct {
 		Agent struct {
 			Messages int `mapstructure:"messages"`
+			Process  int `mapstructure:"process"`
 		} `mapstructure:"agent"`
 		Handler struct {
-			LocalProcess  int `mapstructure:"localprocess"`
-			RemoteProcess int `mapstructure:"remoteprocess"`
 		} `mapstructure:"handler"`
 	} `mapstructure:"buffer"`
 	Concurrency struct {
@@ -92,24 +91,20 @@ func NewDefaultPitayaConfig() *PitayaConfig {
 		Buffer: struct {
 			Agent struct {
 				Messages int `mapstructure:"messages"`
+				Process  int `mapstructure:"process"`
 			} `mapstructure:"agent"`
 			Handler struct {
-				LocalProcess  int `mapstructure:"localprocess"`
-				RemoteProcess int `mapstructure:"remoteprocess"`
 			} `mapstructure:"handler"`
 		}{
 			Agent: struct {
 				Messages int `mapstructure:"messages"`
+				Process  int `mapstructure:"process"`
 			}{
 				Messages: 100,
+				Process:  8,
 			},
 			Handler: struct {
-				LocalProcess  int `mapstructure:"localprocess"`
-				RemoteProcess int `mapstructure:"remoteprocess"`
-			}{
-				LocalProcess:  20,
-				RemoteProcess: 20,
-			},
+			}{},
 		},
 		Concurrency: struct {
 			Handler struct {

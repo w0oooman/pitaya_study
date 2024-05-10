@@ -56,9 +56,8 @@ func (c *Config) fillDefaultValues() {
 	defaultsMap := map[string]interface{}{
 		"pitaya.serializertype":        pitayaConfig.SerializerType,
 		"pitaya.buffer.agent.messages": pitayaConfig.Buffer.Agent.Messages,
+		"pitaya.buffer.agent.process":  pitayaConfig.Buffer.Agent.Process,
 		// the max buffer size that nats will accept, if this buffer overflows, messages will begin to be dropped
-		"pitaya.buffer.handler.localprocess":                    pitayaConfig.Buffer.Handler.LocalProcess,
-		"pitaya.buffer.handler.remoteprocess":                   pitayaConfig.Buffer.Handler.RemoteProcess,
 		"pitaya.cluster.info.region":                            pitayaConfig.Cluster.Info.Region,
 		"pitaya.cluster.rpc.client.grpc.dialtimeout":            pitayaConfig.Cluster.RPC.Client.Grpc.DialTimeout,
 		"pitaya.cluster.rpc.client.grpc.requesttimeout":         pitayaConfig.Cluster.RPC.Client.Grpc.RequestTimeout,
