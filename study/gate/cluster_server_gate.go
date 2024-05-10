@@ -40,7 +40,7 @@ func main() {
 	appGate = builder.Build()
 
 	defer appGate.Shutdown()
-	appGate.RegisterRemote(&RequestGateTest{},
+	appGate.Register(&RequestGateTest{},
 		component.WithName("reqgatetest"),
 		component.WithNameFunc(strings.ToLower),
 	)

@@ -30,9 +30,18 @@ func TestClusterEcho(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = c.SendRequest("gate.reqgatetest.testecho", gateRequestByte)
 	msg := helpers.ShouldEventuallyReceive(t, c.IncomingMsgChan, 13*time.Second).(*message.Message)
-	fmt.Println("ack msg:", msg)
+	gateResponse := &pb.TestGateResponse{}
+	err = proto.Unmarshal(msg.Data, gateResponse)
+	assert.NoError(t, err)
+	fmt.Printf("gate response:%+v\n", gateResponse)
 
-	_, err = c.SendRequest("game.reqgametest.testecho", []byte("hello game"))
+	gameRequest := &pb.TestGateRequest{Id: 456}
+	gameRequestByte, err := proto.Marshal(gameRequest)
+	assert.NoError(t, err)
+	_, err = c.SendRequest("game.reqgametest.testecho", gameRequestByte)
 	msg = helpers.ShouldEventuallyReceive(t, c.IncomingMsgChan, 3*time.Second).(*message.Message)
-	fmt.Println("ack msg:", msg)
+	gameResponse := &pb.TestGateResponse{}
+	err = proto.Unmarshal(msg.Data, gameResponse)
+	assert.NoError(t, err)
+	fmt.Printf("game response:%+v\n", gameResponse)
 }

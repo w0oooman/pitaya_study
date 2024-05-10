@@ -36,7 +36,7 @@ func main() {
 	appGame = builder.Build()
 
 	defer appGame.Shutdown()
-	appGame.RegisterRemote(&RequestGameTest{},
+	appGame.Register(&RequestGameTest{},
 		component.WithName("reqgametest"),
 		component.WithNameFunc(strings.ToLower),
 	)
