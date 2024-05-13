@@ -13,6 +13,15 @@ gate+game服测试：
 . gate服与game服都使用cluster模式
 . gate服与game服不直接连接，通过nats消息队列做转发
 
+. client到gate的消息，如果配置的处理协程数量>1,那么对于单个玩家的消息有可能乱序，因此我对pitaya的这部分处理有所修改(agentImpl中增加了chProcess)。
+. 同理，通过nats处理的远程消息，如果配置的处理协程数量>1，也是多协程处理，这里可以根据具体的场景去处理，比如如果是大地图服务器/公会服务器，可以考虑把协程数量配置为1。
+  原处理在nats_rpc_server.go的processMessages函数，继续跟进，可以发现ns.pitayaServer.Call调用的是remote.go的RemoteService.Call, 里面把实际的处理又放在一个
+  新创建的协程中:
+      		go func() {
+      			result <- processRemoteMessage(c, req, r)
+      		}()
+  如果要保证消息的处理顺序则必须对这部分逻辑进行处理
+
 . nats : 消息队列，处理消息的 发布/订阅  请求/回应 等模式，请求/回应 模式其实是由 发布/订阅 实现的。
          比如，client发送一个消息需要game服处理，则流程如下：
 
