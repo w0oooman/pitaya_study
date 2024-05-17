@@ -143,7 +143,7 @@ func (r *RemoteService) AddRemoteBindingListener(bindingListener cluster.RemoteB
 
 // Call processes a remote call
 func (r *RemoteService) Call(ctx context.Context, req *protos.Request) (*protos.Response, error) {
-	c, err := util.GetContextFromRequest(req, r.server.ID)
+	c, err := util.GetContextFromRequest(req)
 	c = util.StartSpanFromRequest(c, r.server.ID, req.GetMsg().GetRoute())
 	defer tracing.FinishSpan(c, err)
 	var res *protos.Response
@@ -179,6 +179,31 @@ func (r *RemoteService) Call(ctx context.Context, req *protos.Request) (*protos.
 				Msg:  err.Error(),
 			},
 		}
+	}
+
+	if res.Error != nil {
+		err = errors.New(res.Error.Msg)
+	}
+
+	return res, err
+}
+
+// NatsCallInSingleRoutine processes a remote call for nats rpc in single goroutine globally
+func (r *RemoteService) NatsCallInSingleRoutine(ctx context.Context, req *protos.Request) (*protos.Response, error) {
+	c, err := util.GetContextFromRequest(req)
+	c = util.StartSpanFromRequest(c, r.server.ID, req.GetMsg().GetRoute())
+	defer tracing.FinishSpan(c, err)
+	var res *protos.Response
+
+	if err != nil {
+		res = &protos.Response{
+			Error: &protos.Error{
+				Code: e.ErrInternalCode,
+				Msg:  err.Error(),
+			},
+		}
+	} else {
+		res = processRemoteMessage(c, req, r)
 	}
 
 	if res.Error != nil {

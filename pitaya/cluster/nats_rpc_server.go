@@ -22,7 +22,6 @@ package cluster
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -242,28 +241,10 @@ func (ns *NatsRPCServer) getUserKickChannel() chan *protos.KickMsg {
 	return ns.userKickCh
 }
 
-func (ns *NatsRPCServer) marshalResponse(res *protos.Response) ([]byte, error) {
-	p, err := proto.Marshal(res)
-	if err != nil {
-		res := &protos.Response{
-			Error: &protos.Error{
-				Code: e.ErrUnknownCode,
-				Msg:  err.Error(),
-			},
-		}
-		p, _ = proto.Marshal(res)
-	}
-
-	if err == nil && res.Error != nil {
-		err = errors.New(res.Error.Msg)
-	}
-	return p, err
-}
-
 func (ns *NatsRPCServer) processMessages(threadID int) {
 	for ns.requests[threadID] = range ns.GetUnhandledRequestsChannel() {
 		logger.Log.Debugf("(%d) processing message %v", threadID, ns.requests[threadID].GetMsg().GetId())
-		ctx, err := util.GetContextFromRequest(ns.requests[threadID], ns.server.ID)
+		ctx, err := util.GetContextFromRequest(ns.requests[threadID])
 		if err != nil {
 			ns.responses[threadID] = &protos.Response{
 				Error: &protos.Error{
@@ -277,7 +258,7 @@ func (ns *NatsRPCServer) processMessages(threadID int) {
 				logger.Log.Errorf("error processing route %s: %s", ns.requests[threadID].GetMsg().GetRoute(), err)
 			}
 		}
-		p, err := ns.marshalResponse(ns.responses[threadID])
+		p, err := util.NatsRPCServerMarshalResponse(ns.responses[threadID])
 		err = ns.conn.Publish(ns.requests[threadID].GetMsg().GetReply(), p)
 		if err != nil {
 			logger.Log.Errorf("error sending message response: %s", err.Error())

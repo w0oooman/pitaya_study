@@ -31,6 +31,8 @@ import (
 
 	"github.com/nats-io/nuid"
 
+	"github.com/golang/protobuf/proto"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/topfreegames/pitaya/v2/conn/message"
 	"github.com/topfreegames/pitaya/v2/constants"
 	pcontext "github.com/topfreegames/pitaya/v2/context"
@@ -42,8 +44,6 @@ import (
 	"github.com/topfreegames/pitaya/v2/serialize/json"
 	"github.com/topfreegames/pitaya/v2/serialize/protobuf"
 	"github.com/topfreegames/pitaya/v2/tracing"
-
-	opentracing "github.com/opentracing/opentracing-go"
 )
 
 func getLoggerFromArgs(args []reflect.Value) interfaces.Logger {
@@ -217,7 +217,7 @@ func StartSpanFromRequest(
 }
 
 // GetContextFromRequest gets the context from a request
-func GetContextFromRequest(req *protos.Request, serverID string) (context.Context, error) {
+func GetContextFromRequest(req *protos.Request) (context.Context, error) {
 	ctx, err := pcontext.Decode(req.GetMetadata())
 	if err != nil {
 		return nil, err
@@ -236,4 +236,22 @@ func GetContextFromRequest(req *protos.Request, serverID string) (context.Contex
 	ctx = pcontext.AddToPropagateCtx(ctx, constants.RouteKey, route)
 	ctx = CtxWithDefaultLogger(ctx, route, "")
 	return ctx, nil
+}
+
+func NatsRPCServerMarshalResponse(res *protos.Response) ([]byte, error) {
+	p, err := proto.Marshal(res)
+	if err != nil {
+		res := &protos.Response{
+			Error: &protos.Error{
+				Code: e.ErrUnknownCode,
+				Msg:  err.Error(),
+			},
+		}
+		p, _ = proto.Marshal(res)
+	}
+
+	if err == nil && res.Error != nil {
+		err = errors.New(res.Error.Msg)
+	}
+	return p, err
 }

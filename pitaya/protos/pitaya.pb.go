@@ -88,6 +88,7 @@ func (c *pitayaClient) KickUser(ctx context.Context, in *KickMsg, opts ...grpc.C
 // PitayaServer is the server API for Pitaya service.
 type PitayaServer interface {
 	Call(context.Context, *Request) (*Response, error)
+	NatsCallInSingleRoutine(context.Context, *Request) (*Response, error)
 	PushToUser(context.Context, *Push) (*Response, error)
 	SessionBindRemote(context.Context, *BindMsg) (*Response, error)
 	KickUser(context.Context, *KickMsg) (*KickAnswer, error)
