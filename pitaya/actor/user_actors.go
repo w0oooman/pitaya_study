@@ -13,7 +13,7 @@ type userActors struct {
 	stopChan     chan bool
 }
 
-func newUserActorManager(conn *nats.Conn, pitayaServer protos.PitayaServer, buffSize int, stopChan chan bool) *userActors {
+func NewUserActors(conn *nats.Conn, pitayaServer protos.PitayaServer, buffSize int, stopChan chan bool) *userActors {
 	return &userActors{
 		actors:       make(map[int64]*userActor),
 		pitayaServer: pitayaServer,

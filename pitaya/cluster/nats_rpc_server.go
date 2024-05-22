@@ -62,6 +62,7 @@ type NatsRPCServer struct {
 	metricsReporters       []metrics.Reporter
 	sessionPool            session.SessionPool
 	appDieChan             chan bool
+	natsRPCService         NatsRPCService
 }
 
 // NewNatsRPCServer ctor
@@ -262,6 +263,40 @@ func (ns *NatsRPCServer) processMessages(threadID int) {
 		err = ns.conn.Publish(ns.requests[threadID].GetMsg().GetReply(), p)
 		if err != nil {
 			logger.Log.Errorf("error sending message response: %s", err.Error())
+		}
+	}
+}
+
+func (ns *NatsRPCServer) processMessagesSingleRoutine() {
+	for request := range ns.GetUnhandledRequestsChannel() {
+		logger.Log.Debugf("processing message %v for single routine", request.GetMsg().GetId())
+		var response *protos.Response
+		ctx, err := util.GetContextFromRequest(request)
+		if err != nil {
+			response = &protos.Response{
+				Error: &protos.Error{
+					Code: e.ErrInternalCode,
+					Msg:  err.Error(),
+				},
+			}
+		} else {
+			response, err = ns.pitayaServer.NatsCallInSingleRoutine(ctx, request)
+			if err != nil {
+				logger.Log.Errorf("error processing route %s: %s", request.GetMsg().GetRoute(), err)
+			}
+		}
+		p, err := util.NatsRPCServerMarshalResponse(response)
+		err = ns.conn.Publish(request.GetMsg().GetReply(), p)
+		if err != nil {
+			logger.Log.Errorf("error sending message response: %s", err.Error())
+		}
+	}
+}
+
+func (ns *NatsRPCServer) processMessagesUserActor() {
+	for request := range ns.GetUnhandledRequestsChannel() {
+		if err := ns.natsRPCService.Request(request); err != nil {
+			logger.Log.Errorf("process user actor: error processing route %s: %s", request.GetMsg().GetRoute(), err)
 		}
 	}
 }

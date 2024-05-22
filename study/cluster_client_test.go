@@ -39,10 +39,11 @@ func TestClusterGateGame(t *testing.T) {
 		}
 	}()
 
-	gameRequest := &pb.TestGateRequest{Id: 456}
+	gameRequest := &pb.TestGameRequest{Id: 456}
 	gameRequestByte, err := proto.Marshal(gameRequest)
 	assert.NoError(t, err)
 	_, err = c.SendRequest("game.reqgametest.testecho", gameRequestByte)
+	assert.NoError(t, err)
 	msg := helpers.ShouldEventuallyReceive(t, c.IncomingMsgChan, 3*time.Second).(*message.Message)
 	gameResponse := &pb.TestGateResponse{}
 	err = proto.Unmarshal(msg.Data, gameResponse)
