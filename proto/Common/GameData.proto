@@ -25,3 +25,13 @@ message TestGameResponse
   int32 id = 1;
   string msg = 2;
 }
+
+message LoginRequest
+{
+  int64 role_id = 1;
+}
+
+message LoginResponse
+{
+  int64 role_id = 1;
+}

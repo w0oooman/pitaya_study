@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/spf13/viper"
 	"github.com/topfreegames/pitaya/v2"
 	"github.com/topfreegames/pitaya/v2/component"
 	"github.com/topfreegames/pitaya/v2/config"
+	"github.com/topfreegames/pitaya/v2/logger"
 	pb "pitaya_study/proto/pb/go"
 	"strings"
 )
@@ -18,7 +18,7 @@ type RequestGameTest struct {
 var app pitaya.Pitaya
 
 func (m *RequestGameTest) TestEcho(ctx context.Context, in *pb.TestGameRequest) (*pb.TestGameResponse, error) {
-	fmt.Printf("game RequestGameTest TestEcho..., id = %d\n", in.Id)
+	logger.Log.Debugf("game RequestGameTest TestEcho..., id = %d\n", in.Id)
 	return &pb.TestGameResponse{Id: in.Id}, nil
 }
 
@@ -34,9 +34,10 @@ func main() {
 
 	builder := pitaya.NewBuilderWithConfigs(false, "game", pitaya.Cluster, map[string]string{}, config)
 	app = builder.Build()
+	builder.RPCServer.SetRPCServiceUserActor()
 
 	defer app.Shutdown()
-	app.RegisterRemote(&RequestGameTest{},
+	app.Register(&RequestGameTest{},
 		component.WithName("reqgametest"),
 		component.WithNameFunc(strings.ToLower),
 	)

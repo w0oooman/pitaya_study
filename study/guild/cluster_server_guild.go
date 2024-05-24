@@ -8,17 +8,31 @@ import (
 	"github.com/topfreegames/pitaya/v2/component"
 	"github.com/topfreegames/pitaya/v2/config"
 	pb "pitaya_study/proto/pb/go"
+	"runtime"
+	"strconv"
 	"strings"
 )
 
-type RequestGameTest struct {
+func getRoutineID() int64 {
+	b := make([]byte, 64)
+	b = b[:runtime.Stack(b, false)]
+	goidStr := strings.TrimPrefix(string(b), "goroutine ")
+	goidStr = goidStr[:strings.Index(goidStr, " ")]
+	gid, err := strconv.ParseInt(goidStr, 10, 64)
+	if err != nil {
+		return -1
+	}
+	return gid
+}
+
+type RequestGuildTest struct {
 	component.Base
 }
 
 var appGame pitaya.Pitaya
 
-func (m *RequestGameTest) TestEcho(ctx context.Context, in *pb.TestGameRequest) (*pb.TestGameResponse, error) {
-	fmt.Printf("game RequestGameTest TestEcho..., id = %d\n", in.Id)
+func (m *RequestGuildTest) TestEcho(ctx context.Context, in *pb.TestGameRequest) (*pb.TestGameResponse, error) {
+	fmt.Printf("guild RequestGameTest TestEcho..., id = %d, routineID=%d\n", in.Id, getRoutineID())
 	return &pb.TestGameResponse{Id: in.Id}, nil
 }
 
@@ -32,12 +46,12 @@ func main() {
 
 	config := config.NewConfig(conf)
 
-	builder := pitaya.NewBuilderWithConfigs(false, "game", pitaya.Cluster, map[string]string{}, config)
+	builder := pitaya.NewBuilderWithConfigs(false, "guild", pitaya.Cluster, map[string]string{}, config)
+	builder.RPCServer.SetRPCServiceSingleRoutine()
 	appGame = builder.Build()
-	builder.RPCServer.SetRPCServiceUserActor()
 
 	defer appGame.Shutdown()
-	appGame.Register(&RequestGameTest{},
+	appGame.Register(&RequestGuildTest{},
 		component.WithName("reqgametest"),
 		component.WithNameFunc(strings.ToLower),
 	)

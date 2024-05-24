@@ -23,6 +23,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"github.com/topfreegames/pitaya/v2/actor"
 	"math"
 	"time"
 
@@ -83,10 +84,10 @@ func NewNatsRPCServer(
 		connectionTimeout: nats.DefaultTimeout,
 		sessionPool:       sessionPool,
 	}
+	ns.natsRPCService = NewNatsRPCServiceDefault(ns)
 	if err := ns.configure(config); err != nil {
 		return nil, err
 	}
-
 	return ns, nil
 }
 
@@ -358,9 +359,7 @@ func (ns *NatsRPCServer) Init() error {
 		return err
 	}
 	// this handles remote messages
-	for i := 0; i < ns.service; i++ {
-		go ns.processMessages(i)
-	}
+	ns.natsRPCService.InitService()
 
 	ns.sessionPool.OnSessionBind(ns.onSessionBind)
 
@@ -426,4 +425,16 @@ func (ns *NatsRPCServer) reportMetrics() {
 			}
 		}
 	}
+}
+
+func (ns *NatsRPCServer) SetRPCServiceSingleRoutine() {
+	ns.natsRPCService = NewNatsRPCServiceSingleRoutine(ns)
+}
+
+func (ns *NatsRPCServer) SetRPCServiceUserActor() {
+	if ns.pitayaServer == nil {
+		panic("pitaya server is nil when set rpc service")
+	}
+	actors := actor.NewUserActors(&ns.conn, ns.pitayaServer, actor.UserActorBuffSize, ns.stopChan)
+	ns.natsRPCService = NewNatsRPCServiceUserActor(ns, actors)
 }

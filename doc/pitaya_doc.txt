@@ -1,2 +1,5 @@
 pitaya说明文档:
 https://pitaya.readthedocs.io/en/latest/index.html
+
+app.Register: 注册client调用的接口
+app.RegisterRemote: 注册服务器之间调用的接口(程序员自己需要跨服务器调用)

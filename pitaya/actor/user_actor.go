@@ -8,21 +8,26 @@ import (
 	"github.com/topfreegames/pitaya/v2/util"
 )
 
+const UserActorBuffSize = 16
+
 type userActor struct {
 	userID       int64
 	ch           chan *protos.Request
-	conn         *nats.Conn
 	pitayaServer protos.PitayaServer
+	conn         *nats.Conn
+	stopChan     chan bool
 }
 
 func newUserActor(userID int64, conn *nats.Conn, pitayaServer protos.PitayaServer, buffSize int, stopChan chan bool) *userActor {
+	logger.Log.Debugf("new user actor.userID=%d", userID)
 	res := &userActor{
 		userID:       userID,
 		ch:           make(chan *protos.Request, buffSize),
-		conn:         conn,
 		pitayaServer: pitayaServer,
+		conn:         conn,
+		stopChan:     stopChan,
 	}
-	go res.process(stopChan)
+	go res.process()
 	return res
 }
 
@@ -31,10 +36,20 @@ func (u *userActor) ID() int64 {
 }
 
 func (u *userActor) Request(req *protos.Request) {
-	u.ch <- req
+	select {
+	case u.ch <- req:
+	default:
+		logger.Log.Warnf("user actor channel is full, waiting push message")
+		go func() {
+			select {
+			case u.ch <- req:
+			case <-u.stopChan:
+			}
+		}()
+	}
 }
 
-func (u *userActor) process(stopChan chan bool) {
+func (u *userActor) process() {
 	for {
 		select {
 		case req := <-u.ch:
@@ -59,8 +74,12 @@ func (u *userActor) process(stopChan chan bool) {
 			if err != nil {
 				logger.Log.Errorf("error sending message response: %s", err.Error())
 			}
-		case <-stopChan:
+		case <-u.stopChan:
 			return
 		}
 	}
+}
+
+func (u *userActor) Close() {
+	// TODO:
 }
