@@ -9,8 +9,6 @@ package protos
 import (
 	context "context"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -99,29 +97,7 @@ type PitayaServer interface {
 	PushToUser(context.Context, *Push) (*Response, error)
 	SessionBindRemote(context.Context, *BindMsg) (*Response, error)
 	KickUser(context.Context, *KickMsg) (*KickAnswer, error)
-	mustEmbedUnimplementedPitayaServer()
 }
-
-// UnimplementedPitayaServer must be embedded to have forward compatible implementations.
-type UnimplementedPitayaServer struct {
-}
-
-func (UnimplementedPitayaServer) Call(context.Context, *Request) (*Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Call not implemented")
-}
-func (UnimplementedPitayaServer) NatsCallInSingleRoutine(context.Context, *Request) (*Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method NatsCallInSingleRoutine not implemented")
-}
-func (UnimplementedPitayaServer) PushToUser(context.Context, *Push) (*Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PushToUser not implemented")
-}
-func (UnimplementedPitayaServer) SessionBindRemote(context.Context, *BindMsg) (*Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SessionBindRemote not implemented")
-}
-func (UnimplementedPitayaServer) KickUser(context.Context, *KickMsg) (*KickAnswer, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method KickUser not implemented")
-}
-func (UnimplementedPitayaServer) mustEmbedUnimplementedPitayaServer() {}
 
 // UnsafePitayaServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to PitayaServer will

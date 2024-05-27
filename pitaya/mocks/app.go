@@ -13,7 +13,6 @@ import (
 	reflect "reflect"
 	time "time"
 
-	gomock "github.com/golang/mock/gomock"
 	cluster "github.com/topfreegames/pitaya/v2/cluster"
 	component "github.com/topfreegames/pitaya/v2/component"
 	config "github.com/topfreegames/pitaya/v2/config"
@@ -22,6 +21,7 @@ import (
 	router "github.com/topfreegames/pitaya/v2/router"
 	session "github.com/topfreegames/pitaya/v2/session"
 	worker "github.com/topfreegames/pitaya/v2/worker"
+	gomock "github.com/golang/mock/gomock"
 	protoiface "google.golang.org/protobuf/runtime/protoiface"
 )
 

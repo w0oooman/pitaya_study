@@ -13,10 +13,10 @@ import (
 	net "net"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	nats "github.com/nats-io/nats.go"
 	networkentity "github.com/topfreegames/pitaya/v2/networkentity"
 	session "github.com/topfreegames/pitaya/v2/session"
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockSession is a mock of Session interface.

@@ -13,8 +13,8 @@ import (
 	net "net"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	protos "github.com/topfreegames/pitaya/v2/protos"
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockNetworkEntity is a mock of NetworkEntity interface.

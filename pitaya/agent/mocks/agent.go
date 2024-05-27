@@ -13,10 +13,10 @@ import (
 	net "net"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	agent "github.com/topfreegames/pitaya/v2/agent"
 	protos "github.com/topfreegames/pitaya/v2/protos"
 	session "github.com/topfreegames/pitaya/v2/session"
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockAgent is a mock of Agent interface.
